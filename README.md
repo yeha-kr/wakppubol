@@ -5,7 +5,7 @@
 
 ## 플레이
 
-- 공개 URL: **https://GITHUB_ID.github.io/wakppubol/** (배포 후 갱신)
+- 공개 URL: **https://yeha-kr.github.io/wakppubol/**
 - 모바일 세로 화면 권장 (iOS Safari / Android Chrome). 첫 화면에서 "탭하여 시작"을 누르면 소리가 켜집니다.
 
 ## 조작법
