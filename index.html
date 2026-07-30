@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- 모바일: 확대 금지 + 노치 대응(viewport-fit=cover) -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <!-- 파비콘 요청 404가 콘솔에 찍히는 것을 막기 위한 인라인 아이콘 -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔮%3C/text%3E%3C/svg%3E"
+    />
+    <title>왁뿌볼 만들기</title>
+    <style>
+      /* 모바일 웹 게임 공통 처리 (CLAUDE.md 9장):
+         - overflow/overscroll 차단: 스크롤·당겨서 새로고침·바운스 방지
+         - touch-action: none: 더블탭 확대·제스처 스크롤 방지
+         - user-select/touch-callout: 길게 눌러 텍스트 선택·시스템 메뉴 방지 */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #fff1e6; /* src/systems/ui.js의 COLOR.BG와 동일하게 유지할 것 */
+        overflow: hidden;
+        overscroll-behavior: none;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        -webkit-text-size-adjust: 100%;
+      }
+
+      /* iOS 사파리 고무줄(바운스) 스크롤 방지 */
+      body {
+        position: fixed;
+        inset: 0;
+      }
+
+      #game {
+        width: 100%;
+        height: 100%;
+      }
+
+      #game canvas {
+        display: block;
+        touch-action: none;
+      }
+
+      /* 가로 회전 안내 오버레이 — 터치 기기(pointer: coarse)에서만 표시.
+         데스크톱은 창이 가로여도 게임을 그대로 보여준다. */
+      #rotate-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        background: #fff1e6;
+        color: #6d5147;
+        font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+        font-size: 30px;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      @media (orientation: landscape) and (pointer: coarse) {
+        #rotate-overlay {
+          display: flex;
+        }
+      }
+    </style>
+    <script type="module" crossorigin src="/wakppubol/assets/index-CB78u83E.js"></script>
+  </head>
+  <body>
+    <div id="game"></div>
+    <div id="rotate-overlay" aria-hidden="true">
+      <div style="font-size: 64px">📱</div>
+      <div>세로로 돌려주세요</div>
+    </div>
+  </body>
+</html>
