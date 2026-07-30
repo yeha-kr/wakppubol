@@ -26,8 +26,16 @@ export function fadeIn(scene) {
 export function fadeToScene(scene, key) {
   if (scene.__fading) return;
   scene.__fading = true;
-  scene.cameras.main.fadeOut(FADE_MS, ...FADE_RGB);
-  scene.cameras.main.once('camerafadeoutcomplete', () => scene.scene.start(key));
+  const cam = scene.cameras.main;
+  // 진입 페이드인이 아직 진행 중이면 현재 오버레이 알파에서 이어서 어두워지게 한다.
+  // (fadeOut은 알파를 0으로 리셋하므로 화면이 한 프레임 번쩍인다 — 리뷰 확정 결함 수정)
+  const carry = cam.fadeEffect.isRunning ? cam.fadeEffect.alpha : 0;
+  cam.fadeOut(FADE_MS, ...FADE_RGB);
+  if (carry > 0) {
+    cam.fadeEffect.alpha = carry;
+    cam.fadeEffect._elapsed = carry * FADE_MS;
+  }
+  cam.once('camerafadeoutcomplete', () => scene.scene.start(key));
 }
 
 // 씬 이름 라벨 (골격 씬용 — 남은 곳: Credits)
@@ -97,6 +105,7 @@ export function makeButton(scene, x, y, label, onTap, { fontSize = '48px', padX 
     if (!pressed) return;
     pressed = false;
     btn.setAlpha(1);
+    if (scene.__fading) return; // 전환 중에는 버튼 동작(부작용 포함)을 무시
     onTap();
   });
 

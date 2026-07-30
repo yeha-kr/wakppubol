@@ -148,8 +148,9 @@ export default class Stage1 extends Phaser.Scene {
   onMove(pointer) {
     if (!pointer.isDown) return;
 
-    // 뜯기/운반 중
+    // 뜯기/운반 중 (완료 연출·페이드 중에는 무시 — 리뷰 확정 결함 수정)
     if (this.drag && this.drag.pointerId === pointer.id) {
+      if (this.completing) return;
       const d = this.drag;
       if (!d.torn) {
         const dx = pointer.x - d.src.x;
@@ -372,6 +373,13 @@ export default class Stage1 extends Phaser.Scene {
   complete(mixed, colors) {
     this.completing = true;
     this.rub = null;
+    // 진행 중이던 뜯기 드래그도 정리 (완료 연출 중 찢기 사운드·트윈 방지)
+    if (this.drag) {
+      const d = this.drag;
+      this.drag = null;
+      this.neckGfx.clear();
+      this.tweens.add({ targets: d.piece, alpha: 0, scale: 0.5, duration: 180, onComplete: () => d.piece.destroy() });
+    }
 
     const mixSecs = this.mixStartAt === null ? 0 : (this.time.now - this.mixStartAt) / 1000;
     console.log(

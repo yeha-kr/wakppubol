@@ -56,5 +56,6 @@ function formatElapsed(ms) {
   if (typeof ms !== 'number' || ms < 0) return '—';
   const s = ms / 1000;
   if (s < 60) return `${s.toFixed(1)}초`;
-  return `${Math.floor(s / 60)}분 ${Math.round(s % 60)}초`;
+  const total = Math.round(s); // 초를 먼저 반올림 — '1분 60초' 표기 방지 (리뷰 확정 결함 수정)
+  return `${Math.floor(total / 60)}분 ${total % 60}초`;
 }

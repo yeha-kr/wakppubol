@@ -105,6 +105,8 @@ export default class Stage4 extends Phaser.Scene {
 
     this.input.on('pointerdown', this.onDown, this);
     this.input.on('pointerup', this.onUp, this);
+    // 캔버스 밖(레터박스)에서 릴리즈해도 홀드 크랙이 소실되지 않게 (리뷰 확정 결함 수정)
+    this.input.on('pointerupoutside', this.onUp, this);
   }
 
   // ─── 입력 ───
