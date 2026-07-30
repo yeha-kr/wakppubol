@@ -77,7 +77,7 @@ export function addStageHeader(scene, step, total, title) {
   const banner = scene.add.graphics().setDepth(7.9).setScrollFactor(0);
   banner.fillStyle(0xffffff, 0.55);
   banner.fillRoundedRect(width / 2 - 235, 14, 470, 132, 26);
-  scene.add
+  const stepText = scene.add
     .text(width / 2, 38, `${step}/${total}`, {
       fontFamily: FONT,
       fontSize: '26px',
@@ -87,7 +87,7 @@ export function addStageHeader(scene, step, total, title) {
     .setOrigin(0.5)
     .setScrollFactor(0)
     .setDepth(8);
-  scene.add
+  const titleText = scene.add
     .text(width / 2, 78, title, {
       fontFamily: FONT,
       fontSize: '34px',
@@ -97,6 +97,8 @@ export function addStageHeader(scene, step, total, title) {
     .setOrigin(0.5)
     .setScrollFactor(0)
     .setDepth(8);
+  // 피날레 연출 등에서 HUD를 통째로 숨길 수 있게 구성 요소를 돌려준다
+  return [banner, stepText, titleText];
 }
 
 // 범용 버튼. pointerup + "이 버튼에서 눌렀을 때만" 발동 (씬 전환 직후 오터치 방지)

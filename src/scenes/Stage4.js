@@ -87,15 +87,16 @@ export default class Stage4 extends Phaser.Scene {
     // 홀드 게이지 링 (update에서 매 프레임 다시 그림)
     this.gaugeGfx = this.add.graphics().setDepth(4);
 
-    // HUD
-    addStageHeader(this, 4, 4, '왁뿌볼 금내기');
+    // HUD (피날레 줌 때 함께 숨길 수 있게 목록으로 관리)
+    this.hudItems = addStageHeader(this, 4, 4, '왁뿌볼 금내기');
     this.counterText = this.add
       .text(width / 2, 122, '', { fontFamily: FONT, fontSize: '30px', color: '#A98D80' })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(5);
+    this.hudItems.push(this.counterText);
     this.updateCounter();
-    this.add
+    const bottomHint = this.add
       .text(width / 2, height * 0.87, '탭 · 연타 · 길게 눌렀다 떼기!', {
         fontFamily: FONT,
         fontSize: '26px',
@@ -107,6 +108,7 @@ export default class Stage4 extends Phaser.Scene {
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(5);
+    this.hudItems.push(bottomHint);
 
     // FPS 표시 (개발 빌드 전용 — 완료 기준 55fps 확인용)
     if (import.meta.env.DEV) {
@@ -116,6 +118,7 @@ export default class Stage4 extends Phaser.Scene {
         .setScrollFactor(0)
         .setDepth(5);
       this.fpsAccum = 0;
+      this.hudItems.push(this.fpsText);
     }
 
     this.input.on('pointerdown', this.onDown, this);
@@ -278,7 +281,8 @@ export default class Stage4 extends Phaser.Scene {
     if (!skipBigSound) playSfx('crack_big');
     this.time.delayedCall(Phaser.Math.Between(60, 140), () => playSfx('shard'));
     vibrate(VIB_BIG);
-    this.cameras.main.shake(100, 0.005);
+    // force=true: 같은 프레임에 앞선 약한 셰이크가 있어도 굵은 셰이크가 무시되지 않게 (리뷰 확정)
+    this.cameras.main.shake(100, 0.005, true);
 
     if (this.brokenCount === SECTORS) this.finale();
   }
@@ -314,6 +318,8 @@ export default class Stage4 extends Phaser.Scene {
 
     this.cameras.main.pan(this.cx, this.cy, 350, 'Sine.easeInOut');
     this.cameras.main.zoomTo(1.18, 350, 'Sine.easeInOut');
+    // 줌은 scrollFactor(0)에도 적용되어 HUD가 화면 밖으로 밀린다 — 클로즈업 동안 페이드 아웃 (리뷰 확정)
+    this.tweens.add({ targets: this.hudItems, alpha: 0, duration: 200 });
     this.tweens.add({
       targets: [this.clayBall, this.shellRT, this.shellMaskG],
       scaleX: '*=1.08',
@@ -334,7 +340,7 @@ export default class Stage4 extends Phaser.Scene {
       this.time.delayedCall(t, () => playSfx('shard'));
     }
     vibrate(VIB_BIG);
-    this.cameras.main.shake(200, 0.008);
+    this.cameras.main.shake(200, 0.008, true); // 직전 셰이크가 돌고 있어도 강제 시작 (리뷰 확정)
 
     this.time.delayedCall(FINALE_DELAY_MS, () => fadeToScene(this, 'Result'));
   }

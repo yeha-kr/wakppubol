@@ -20,7 +20,8 @@ const POT_HALF_W = 170; // 잠김 판정 반폭 (잠긴 동안 x를 이 안으�
 const DIP_SOUND_GAP_MS = 250; // 첨벙 사운드 최소 간격 (재잠수 연타 노이즈 방지)
 const SPARSE_DT = 0.033; // 유휴 공백 직후 첫 이동 구간에 적용하는 보정 dt(초) ≈ 2프레임
 const JANK_KEEP_SPEED = 300; // 공백 직전 속도(px/s)가 이보다 크면 프레임 잭으로 보고 실제 dt 유지
-const LONG_GAP_S = 0.5; // 이보다 긴 이벤트 공백은 의도적 정지로 간주 (잭·이벤트 병합은 이보다 짧다)
+const LONG_GAP_S = 0.22; // 이보다 긴 이벤트 공백은 의도적 정지로 간주 — 0.5→0.22:
+// 꼼지락(빠른 미세 이동) 후 0.3~0.4초 멈췄다 홱 빼는 패턴이 잭으로 오분류되던 문제 수정 (리뷰 확정)
 const CLAY_FALLBACK = 0xd96c5f; // Stage1을 건너뛴 경우의 점토색
 
 const REST_X = 360;
@@ -54,6 +55,7 @@ export default class Stage2 extends Phaser.Scene {
     if (this.textures.exists('wax_pot')) {
       this.pot = this.add.image(408, 1016, 'wax_pot').setDepth(5);
       this.pot.setDisplaySize(500, (this.pot.height * 500) / this.pot.width);
+      this.rippleBase = { t: this.pot, x: this.pot.scaleX, y: this.pot.scaleY }; // 출렁 트윈 기준 스케일
     } else {
       const potBack = this.add.graphics().setDepth(2);
       potBack.fillStyle(0x8a6f5c, 1);
@@ -63,6 +65,7 @@ export default class Stage2 extends Phaser.Scene {
 
       // 잠긴 공 위로 겹쳐 보이는 반투명 왁스막 — 공이 뿌옇게 비쳐 "담김"이 읽힌다
       this.surfaceFront = this.add.ellipse(width / 2, SURFACE_Y + 26, 336, 120, 0xf6ead9, 0.55).setDepth(5);
+      this.rippleBase = { t: this.surfaceFront, x: 1, y: 1 }; // 출렁 트윈 기준 스케일
       const potFront = this.add.graphics().setDepth(5);
       potFront.fillStyle(0x8a6f5c, 1);
       potFront.fillRoundedRect(width / 2 - 190, SURFACE_Y + 60, 380, 140, { tl: 6, tr: 6, bl: 40, br: 40 });
@@ -181,8 +184,14 @@ export default class Stage2 extends Phaser.Scene {
         playSfx('wax_dip');
         this.lastDipSoundAt = this.time.now;
       }
-      const ripple = this.surfaceFront || this.pot;
-      if (ripple) this.tweens.add({ targets: ripple, scaleX: '*=1.04', scaleY: '*=1.06', duration: 130, yoyo: true });
+      // 출렁 트윈: 중첩되면 yoyo 복귀값이 오염되어 스케일이 부풀어 남는다 —
+      // 항상 기준 스케일로 리셋 후 새로 시작 (리뷰 확정 결함 수정)
+      const rb = this.rippleBase;
+      if (rb) {
+        this.tweens.killTweensOf(rb.t);
+        rb.t.setScale(rb.x, rb.y);
+        this.tweens.add({ targets: rb.t, scaleX: '*=1.04', scaleY: '*=1.06', duration: 130, yoyo: true });
+      }
       this.hideHint();
     } else {
       // 빼기: 유지 완료 여부 + 빼는 순간 속도로 판정

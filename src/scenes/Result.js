@@ -68,7 +68,7 @@ export default class Result extends Phaser.Scene {
 function formatElapsed(ms) {
   if (typeof ms !== 'number' || ms < 0) return '—';
   const s = ms / 1000;
-  if (s < 60) return `${s.toFixed(1)}초`;
+  if (s < 59.95) return `${s.toFixed(1)}초`; // 59.95↑는 toFixed가 '60.0초'로 만들므로 분 표기로 (리뷰 확정)
   const total = Math.round(s); // 초를 먼저 반올림 — '1분 60초' 표기 방지 (리뷰 확정 결함 수정)
   return `${Math.floor(total / 60)}분 ${total % 60}초`;
 }

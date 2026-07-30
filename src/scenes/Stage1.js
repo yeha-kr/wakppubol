@@ -344,7 +344,8 @@ export default class Stage1 extends Phaser.Scene {
 
     if (!this.mixNode) return;
     if (useImg) {
-      this.mixNode.setTexture(['mix_10', 'mix_40', 'mix_70', 'mix_100'][stage - 1]);
+      const key = ['mix_10', 'mix_40', 'mix_70', 'mix_100'][stage - 1];
+      if (this.textures.exists(key)) this.mixNode.setTexture(key); // 일부 파일만 누락돼도 이전 단계 유지
       const w = 250 + stage * 8; // 섞일수록 살짝 커진다
       this.mixNode.setDisplaySize(w, (this.mixNode.height * w) / this.mixNode.width);
     } else {
