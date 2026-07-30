@@ -33,7 +33,6 @@ export default class Credits extends Phaser.Scene {
 
     // 탭 이탈 시 가림/블러, 복귀 시 해제 (visibilitychange)
     this.hiddenNow = false;
-    this.blurFx = null;
     this.onVis = () => (document.hidden ? this.hideContent() : this.showContent());
     document.addEventListener('visibilitychange', this.onVis);
 
@@ -139,16 +138,20 @@ export default class Credits extends Phaser.Scene {
     });
   }
 
-  // 탭 이탈: 가림막 + (WebGL이면) 카메라 블러
+  // 탭 이탈: 캔버스 자체를 CSS 블러(컴포지터 레벨 — 숨김 중에도 앱 전환기 스냅샷에 반영)하고,
+  // 가림막이 켜진 프레임을 수동으로 1회 렌더해 캔버스 버퍼에도 남긴다.
+  // visibilitychange 시점에는 브라우저가 RAF를 이미 멈춰 일반 렌더 루프로는 그려지지
+  // 않기 때문이다 (리뷰 확정 결함 수정 — 씬 오브젝트만으로는 스냅샷에 사진이 남는다)
   hideContent() {
     this.hiddenNow = true;
     this.privacyCover.setVisible(true);
+    const cv = this.game.canvas;
+    cv.style.filter = 'blur(28px)';
+    cv.style.webkitFilter = 'blur(28px)';
     try {
-      if (!this.blurFx && this.cameras.main.postFX) {
-        this.blurFx = this.cameras.main.postFX.addBlur(0, 4, 4, 1.2);
-      }
+      this.game.loop.step(window.performance.now()); // 가림막 포함 프레임 즉시 페인트
     } catch (e) {
-      this.blurFx = null; // 블러 미지원이어도 가림막이 있으므로 무시
+      /* 수동 스텝이 실패해도 CSS 블러가 가려준다 */
     }
   }
 
@@ -156,13 +159,8 @@ export default class Credits extends Phaser.Scene {
   showContent() {
     this.hiddenNow = false;
     if (this.privacyCover) this.privacyCover.setVisible(false);
-    try {
-      if (this.blurFx && this.cameras.main.postFX) {
-        this.cameras.main.postFX.remove(this.blurFx);
-      }
-    } catch (e) {
-      /* 무시 */
-    }
-    this.blurFx = null;
+    const cv = this.game.canvas;
+    cv.style.filter = '';
+    cv.style.webkitFilter = '';
   }
 }
