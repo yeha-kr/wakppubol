@@ -19,6 +19,9 @@ const MANIFEST = {
   wax_dip: ['wax_dip'],
   wax_drip: ['wax_drip_1', 'wax_drip_2', 'wax_drip_3'],
   wax_fail: ['wax_fail'],
+  rubber_pat: ['rubber_pat_1', 'rubber_pat_2', 'rubber_pat_3'],
+  tie_tick: ['tie_tick'],
+  tie_zip: ['tie_zip'],
 };
 
 // 루프 사운드 구성 (풀이 아니라 단일 파일, 인스턴스 1개를 계속 재생하며 볼륨 제어)
@@ -40,6 +43,12 @@ const SYNTH_RECIPE = {
   wax_drip: { variants: 3, duration: 0.12, bursts: 1, freq: [1300, 2600], q: 5, decay: 0.05, peak: 0.4 },
   // 실패: 낮고 둔탁한 "철퍽" (얼룩)
   wax_fail: { variants: 1, duration: 0.35, bursts: 2, freq: [180, 420], q: 0.9, decay: 0.13, peak: 0.6 },
+  // 고무 패팅: 낮고 부드러운 "팟"
+  rubber_pat: { variants: 3, duration: 0.1, bursts: 1, freq: [300, 700], q: 1.2, decay: 0.045, peak: 0.5 },
+  // 래칫 틱: 아주 짧고 높은 "틱" (재생 rate로 피치를 올려가며 사용)
+  tie_tick: { variants: 2, duration: 0.05, bursts: 1, freq: [2500, 4000], q: 2.5, decay: 0.015, peak: 0.38 },
+  // 조임: 촘촘한 버스트로 "지지익" 긁힘 질감
+  tie_zip: { variants: 1, duration: 0.38, bursts: 9, freq: [1100, 2100], q: 1.6, decay: 0.028, peak: 0.5 },
 };
 
 const pools = {}; // 원샷 풀명 → { keys: [], last: -1, synthetic: bool }
