@@ -15,6 +15,25 @@ export default class Preload extends Phaser.Scene {
     // 개발자 정보 사진 (P6) — 캔버스 텍스처로만 쓴다 (DOM <img> 금지, CLAUDE.md 7장).
     // 파일이 없어도 게임은 계속 진행 (Credits 씬이 자리표시로 대체)
     this.load.image('dev_photo', 'assets/dev/photo.png');
+
+    // 실에셋 스프라이트 (P7) — 없으면 각 씬이 임시 그래픽을 유지한다 (CLAUDE.md 6장)
+    const IMGS = [
+      'clay_red',
+      'clay_blue',
+      'clay_yellow',
+      'mix_10',
+      'mix_40',
+      'mix_70',
+      'mix_100',
+      'ball_core',
+      'wax_pot',
+      'rubber_patch',
+      'cable_tie',
+      'title_mascot',
+      'btn_primary',
+    ];
+    for (const key of IMGS) this.load.image(key, `assets/img/${key}.png`);
+    this.load.image('bg_workshop', 'assets/img/bg_workshop.jpg');
   }
 
   async create() {

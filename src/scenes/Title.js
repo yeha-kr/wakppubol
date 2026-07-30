@@ -15,19 +15,41 @@ export default class Title extends Phaser.Scene {
     fadeIn(this);
     const { width, height } = this.scale;
 
-    // 장식: 완성형 왁뿌볼 미리보기 (임시 그래픽) — 잔잔하게 떠 있는다
-    const clay = this.add.circle(0, 0, 104, CLAY_PREVIEW);
-    const shell = this.add.circle(0, 0, 126, 0xffffff).setAlpha(0.55);
-    const gloss = this.add.ellipse(-40, -46, 58, 38, 0xffffff).setAlpha(0.5);
-    const ball = this.add.container(width / 2, height * 0.47, [clay, shell, gloss]);
-    this.tweens.add({
-      targets: ball,
-      y: ball.y - 14,
-      duration: 1500,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
+    // 장식: 마스코트 일러스트 카드 (실에셋) / 없으면 임시 미리보기 공
+    if (this.textures.exists('title_mascot')) {
+      const cy = height * 0.47;
+      const card = this.add.image(width / 2, cy, 'title_mascot').setDisplaySize(464, 464);
+      const m = this.make.graphics({ x: 0, y: 0 }, false);
+      m.fillStyle(0xffffff, 1);
+      m.fillRoundedRect(width / 2 - 228, cy - 228, 456, 456, 32);
+      card.setMask(m.createGeometryMask());
+      const frame = this.add.graphics();
+      frame.lineStyle(8, 0xffffff, 1);
+      frame.strokeRoundedRect(width / 2 - 228, cy - 228, 456, 456, 32);
+      // 프레임 안에서 살짝 숨쉬는 줌
+      this.tweens.add({
+        targets: card,
+        scaleX: card.scaleX * 1.04,
+        scaleY: card.scaleY * 1.04,
+        duration: 1800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    } else {
+      const clay = this.add.circle(0, 0, 104, CLAY_PREVIEW);
+      const shell = this.add.circle(0, 0, 126, 0xffffff).setAlpha(0.55);
+      const gloss = this.add.ellipse(-40, -46, 58, 38, 0xffffff).setAlpha(0.5);
+      const ball = this.add.container(width / 2, height * 0.47, [clay, shell, gloss]);
+      this.tweens.add({
+        targets: ball,
+        y: ball.y - 14,
+        duration: 1500,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
 
     // 임시 로고
     this.add

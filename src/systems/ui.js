@@ -38,6 +38,24 @@ export function fadeToScene(scene, key) {
   cam.once('camerafadeoutcomplete', () => scene.scene.start(key));
 }
 
+// 배경 일러스트 (실에셋이 있으면) + 톤 안정용 파스텔 워시 (P7)
+export function addBackground(scene) {
+  if (!scene.textures.exists('bg_workshop')) return;
+  const { width, height } = scene.scale;
+  scene.add.image(width / 2, height / 2, 'bg_workshop').setDisplaySize(width, height).setDepth(-10);
+  scene.add.rectangle(width / 2, height / 2, width, height, 0xfff1e6, 0.22).setDepth(-9);
+}
+
+// 색을 흰색 쪽으로 t만큼 섞는다 — 이미지 setTint는 곱셈이라 원색 그대로 쓰면
+// 어두워지므로, 밝힌 색으로 틴트해 아트의 명암을 살린다
+export function lightenColor(color, t) {
+  const r = (color >> 16) & 0xff;
+  const g = (color >> 8) & 0xff;
+  const b = color & 0xff;
+  const L = (c) => Math.round(c + (255 - c) * t);
+  return (L(r) << 16) | (L(g) << 8) | L(b);
+}
+
 // 씬 이름 라벨 (골격 씬용 — 남은 곳: Credits)
 export function addSceneLabel(scene, name) {
   const { width, height } = scene.scale;
@@ -55,6 +73,10 @@ export function addSceneLabel(scene, name) {
 // scrollFactor(0): Stage4 피날레처럼 카메라가 움직여도 HUD는 고정되어야 한다
 export function addStageHeader(scene, step, total, title) {
   const { width } = scene.scale;
+  // 배경 일러스트 위에서도 읽히도록 반투명 배너를 깐다 (씬별 카운터 줄까지 커버)
+  const banner = scene.add.graphics().setDepth(7.9).setScrollFactor(0);
+  banner.fillStyle(0xffffff, 0.55);
+  banner.fillRoundedRect(width / 2 - 235, 14, 470, 132, 26);
   scene.add
     .text(width / 2, 38, `${step}/${total}`, {
       fontFamily: FONT,
@@ -78,38 +100,50 @@ export function addStageHeader(scene, step, total, title) {
 }
 
 // 범용 버튼. pointerup + "이 버튼에서 눌렀을 때만" 발동 (씬 전환 직후 오터치 방지)
+// btn_primary 실에셋이 있으면 캡슐 이미지 버튼, 없으면 텍스트 배경 버튼
 export function makeButton(scene, x, y, label, onTap, { fontSize = '48px', padX = 72, padY = 30 } = {}) {
-  const btn = scene.add
+  const useImg = scene.textures.exists('btn_primary');
+
+  const txt = scene.add
     .text(x, y, label, {
       fontFamily: FONT,
       fontSize,
-      color: COLOR.BTN_TEXT,
-      backgroundColor: COLOR.BTN_BG,
-      padding: { x: padX, y: padY },
+      fontStyle: useImg ? 'bold' : 'normal',
+      color: useImg ? '#8A3D33' : COLOR.BTN_TEXT,
+      ...(useImg ? {} : { backgroundColor: COLOR.BTN_BG, padding: { x: padX, y: padY } }),
     })
     .setOrigin(0.5)
-    .setDepth(8)
-    .setInteractive({ useHandCursor: true });
+    .setDepth(8.1);
+
+  let hit = txt;
+  const targets = [txt];
+  if (useImg) {
+    const img = scene.add.image(x, y, 'btn_primary').setDepth(8);
+    img.setDisplaySize(Math.max(txt.width + padX * 2, 230), txt.height + padY * 1.8);
+    targets.push(img);
+    hit = img;
+  }
+  hit.labelText = txt; // 호출부에서 라벨까지 함께 숨길 수 있게 참조를 남긴다
+  hit.setInteractive({ useHandCursor: true });
 
   let pressed = false;
-
-  btn.on('pointerdown', () => {
+  hit.on('pointerdown', () => {
     pressed = true;
-    btn.setAlpha(0.7);
+    targets.forEach((t) => t.setAlpha(0.75));
   });
-  btn.on('pointerout', () => {
+  hit.on('pointerout', () => {
     pressed = false;
-    btn.setAlpha(1);
+    targets.forEach((t) => t.setAlpha(1));
   });
-  btn.on('pointerup', () => {
+  hit.on('pointerup', () => {
     if (!pressed) return;
     pressed = false;
-    btn.setAlpha(1);
+    targets.forEach((t) => t.setAlpha(1));
     if (scene.__fading) return; // 전환 중에는 버튼 동작(부작용 포함)을 무시
     onTap();
   });
 
-  return btn;
+  return hit;
 }
 
 // [다음] 버튼 (골격 씬용)

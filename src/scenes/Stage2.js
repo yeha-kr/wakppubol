@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { FONT, addStageHeader, fadeIn, fadeToScene } from '../systems/ui.js';
+import { FONT, addStageHeader, fadeIn, fadeToScene, addBackground, lightenColor } from '../systems/ui.js';
 import { playSfx } from '../systems/audio.js';
 
 // Stage 2 — 왁스에 담갔다 빼기 (P3, docs/PLAN.md 6장)
@@ -33,6 +33,7 @@ export default class Stage2 extends Phaser.Scene {
 
   create() {
     fadeIn(this);
+    addBackground(this);
     const { width } = this.scale;
     this.layers = 0;
     this.completing = false;
@@ -49,23 +50,30 @@ export default class Stage2 extends Phaser.Scene {
     const reg = this.registry.get('clayColors');
     this.clayColor = reg && typeof reg.mixed === 'number' ? reg.mixed : CLAY_FALLBACK;
 
-    // ── 냄비 ──
-    const potBack = this.add.graphics().setDepth(2);
-    potBack.fillStyle(0x8a6f5c, 1);
-    potBack.fillRoundedRect(width / 2 - 190, SURFACE_Y - 30, 380, 230, { tl: 26, tr: 26, bl: 40, br: 40 });
-    potBack.fillStyle(0xf6ead9, 1);
-    potBack.fillEllipse(width / 2, SURFACE_Y, 340, 84); // 왁스 수면(뒤)
+    // ── 냄비 (실에셋: 공보다 위 depth라 담그면 냄비 뒤로 잠겨 보인다) ──
+    if (this.textures.exists('wax_pot')) {
+      this.pot = this.add.image(408, 1016, 'wax_pot').setDepth(5);
+      this.pot.setDisplaySize(500, (this.pot.height * 500) / this.pot.width);
+    } else {
+      const potBack = this.add.graphics().setDepth(2);
+      potBack.fillStyle(0x8a6f5c, 1);
+      potBack.fillRoundedRect(width / 2 - 190, SURFACE_Y - 30, 380, 230, { tl: 26, tr: 26, bl: 40, br: 40 });
+      potBack.fillStyle(0xf6ead9, 1);
+      potBack.fillEllipse(width / 2, SURFACE_Y, 340, 84); // 왁스 수면(뒤)
 
-    // 잠긴 공 위로 겹쳐 보이는 반투명 왁스막 — 공이 뿌옇게 비쳐 "담김"이 읽힌다
-    this.surfaceFront = this.add.ellipse(width / 2, SURFACE_Y + 26, 336, 120, 0xf6ead9, 0.55).setDepth(5);
-    const potFront = this.add.graphics().setDepth(5);
-    potFront.fillStyle(0x8a6f5c, 1);
-    potFront.fillRoundedRect(width / 2 - 190, SURFACE_Y + 60, 380, 140, { tl: 6, tr: 6, bl: 40, br: 40 });
-    potFront.lineStyle(5, 0x6f584a, 1);
-    potFront.strokeEllipse(width / 2, SURFACE_Y, 340, 84); // 냄비 테두리
+      // 잠긴 공 위로 겹쳐 보이는 반투명 왁스막 — 공이 뿌옇게 비쳐 "담김"이 읽힌다
+      this.surfaceFront = this.add.ellipse(width / 2, SURFACE_Y + 26, 336, 120, 0xf6ead9, 0.55).setDepth(5);
+      const potFront = this.add.graphics().setDepth(5);
+      potFront.fillStyle(0x8a6f5c, 1);
+      potFront.fillRoundedRect(width / 2 - 190, SURFACE_Y + 60, 380, 140, { tl: 6, tr: 6, bl: 40, br: 40 });
+      potFront.lineStyle(5, 0x6f584a, 1);
+      potFront.strokeEllipse(width / 2, SURFACE_Y, 340, 84); // 냄비 테두리
+    }
 
-    // ── 공: 점토(불투명) + 투명 왁스 셸(레이어에 따라 커지고 뿌예짐) + 광택 ──
-    this.clayBall = this.add.circle(0, 0, BALL_R, this.clayColor);
+    // ── 공: 점토(실에셋/원) + 투명 왁스 셸(레이어에 따라 커지고 뿌예짐) + 광택 ──
+    this.clayBall = this.textures.exists('ball_core')
+      ? this.add.image(0, 0, 'ball_core').setDisplaySize(BALL_R * 2, BALL_R * 2).setTint(lightenColor(this.clayColor, 0.45))
+      : this.add.circle(0, 0, BALL_R, this.clayColor);
     this.shell = this.add.circle(0, 0, BALL_R + 2, 0xffffff).setAlpha(0);
     this.gloss = this.add.ellipse(-30, -36, 48, 32, 0xffffff).setAlpha(0);
     this.ball = this.add.container(REST_X, REST_Y, [this.clayBall, this.shell, this.gloss]).setDepth(4);
@@ -139,7 +147,7 @@ export default class Stage2 extends Phaser.Scene {
 
     // 공은 잡은 지점 오프셋을 유지하며 1:1로 따라온다 (판정 스테이지라 지연 없이 직결)
     let x = Phaser.Math.Clamp(pointer.x + this.dragging.offX, 80, 640);
-    let y = Phaser.Math.Clamp(pointer.y + this.dragging.offY, 200, SURFACE_Y + 130);
+    let y = Phaser.Math.Clamp(pointer.y + this.dragging.offY, 200, SURFACE_Y + 60); // 냄비 아트 아래로 비져나오지 않게
     if (this.inPot) {
       // 잠긴 동안은 옆으로 빠져나갈 수 없다 (위로만 꺼내는 조작)
       x = Phaser.Math.Clamp(x, 360 - (POT_HALF_W - 12), 360 + (POT_HALF_W - 12));
@@ -173,7 +181,8 @@ export default class Stage2 extends Phaser.Scene {
         playSfx('wax_dip');
         this.lastDipSoundAt = this.time.now;
       }
-      this.tweens.add({ targets: this.surfaceFront, scaleX: 1.06, scaleY: 1.12, duration: 130, yoyo: true });
+      const ripple = this.surfaceFront || this.pot;
+      if (ripple) this.tweens.add({ targets: ripple, scaleX: '*=1.04', scaleY: '*=1.06', duration: 130, yoyo: true });
       this.hideHint();
     } else {
       // 빼기: 유지 완료 여부 + 빼는 순간 속도로 판정

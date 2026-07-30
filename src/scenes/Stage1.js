@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { FONT, addStageHeader, fadeIn, fadeToScene } from '../systems/ui.js';
+import { FONT, addStageHeader, fadeIn, fadeToScene, addBackground } from '../systems/ui.js';
 import { playSfx, startLoop, stopLoop } from '../systems/audio.js';
 
 // Stage 1 — 점토 떼서 섞어 뭉치기 (P2, docs/PLAN.md 6장)
@@ -36,6 +36,7 @@ export default class Stage1 extends Phaser.Scene {
 
   create() {
     fadeIn(this);
+    addBackground(this);
     const { width, height } = this.scale;
     this.bowlX = width / 2;
     this.bowlY = height * 0.457; // 585
@@ -64,24 +65,28 @@ export default class Stage1 extends Phaser.Scene {
     bowlG.fillStyle(0xe8d5c4, 0.45); // 안쪽 아래 그늘로 오목한 느낌
     bowlG.fillEllipse(this.bowlX, this.bowlY + BOWL_R * 0.45, BOWL_R * 1.25, BOWL_R * 0.48);
 
-    // ── 하단 점토 3덩이 ──
+    // ── 하단 점토 3덩이 (실에셋 스프라이트 / 없으면 색 원) ──
     this.sources = CLAYS.map((c, i) => {
       const x = 170 + i * 190;
       const y = height * 0.824; // 1055
-      const body = this.add.circle(x, y, SOURCE_R, c.color).setDepth(1);
-      const shine = this.add
-        .circle(x - SOURCE_R * 0.3, y - SOURCE_R * 0.35, SOURCE_R * 0.3, 0xffffff, 0.28)
-        .setDepth(1);
+      let node;
+      if (this.textures.exists(`clay_${c.name}`)) {
+        node = this.add.image(x, y, `clay_${c.name}`).setDepth(1);
+        node.setDisplaySize(SOURCE_R * 2.3, (node.height * (SOURCE_R * 2.3)) / node.width);
+      } else {
+        node = this.add.circle(x, y, SOURCE_R, c.color).setDepth(1);
+      }
       // 만질 수 있다는 힌트로 잔잔한 숨쉬기 (텍스트 안내 없이 직관 유도)
       this.tweens.add({
-        targets: [body, shine],
-        scale: 1.04,
+        targets: node,
+        scaleX: '*=1.04',
+        scaleY: '*=1.04',
         duration: 850 + i * 130,
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut',
       });
-      return { ...c, x, y, body, shine };
+      return { ...c, x, y, node };
     });
 
     // ── 뜯기 목 연결부(스트레치 표현)용 Graphics ──
@@ -129,7 +134,7 @@ export default class Stage1 extends Phaser.Scene {
         (s) => Phaser.Math.Distance.Between(pointer.x, pointer.y, s.x, s.y) <= SOURCE_R + 20
       );
       if (src) {
-        const piece = this.makeBlob(src.x, src.y, PIECE_R, src.color).setDepth(6);
+        const piece = this.makePiece(src.x, src.y, src).setDepth(6);
         // x0/y0: 잡은 지점 — 뜯김 판정은 이 지점 대비 드래그 이동량으로 계산한다
         this.drag = { pointer, pointerId: pointer.id, src, piece, torn: false, x0: pointer.x, y0: pointer.y };
         return;
@@ -177,9 +182,9 @@ export default class Stage1 extends Phaser.Scene {
           d.piece.rotation = 0;
           this.tweens.add({ targets: d.piece, scaleX: 1, scaleY: 1, duration: 220, ease: 'Back.easeOut' });
           this.tweens.add({
-            targets: [d.src.body, d.src.shine],
-            scaleX: 1.12,
-            scaleY: 0.86,
+            targets: d.src.node,
+            scaleX: '*=1.12',
+            scaleY: '*=0.86',
             duration: 90,
             yoyo: true,
             ease: 'Sine.easeInOut',
@@ -317,50 +322,41 @@ export default class Stage1 extends Phaser.Scene {
     this.gaugeFill.fillRoundedRect(width / 2 - 210, 800, w, 24, 12);
   }
 
-  // 혼합 단계 시각 교체: 조각들 → "두 색을 lerp한 원" + 줄어드는 원색 얼룩 (임시 그래픽)
+  // 혼합 단계 시각 교체: 조각들 → 혼합 스프라이트(mix_10/40/70/100) 스왑
+  // (실에셋이 없으면 두 색을 lerp한 원으로 폴백 — CLAUDE.md 6장)
   applyMixStage(stage) {
     const colors = this.bowlPieces.map((p) => p.color);
     const mixed = averageColor(colors);
+    const useImg = this.textures.exists('mix_10');
 
     if (stage === 1) {
-      // 조각 원들을 지우고 혼합 원으로 교체
+      // 조각들을 지우고 혼합 표현으로 교체
       for (const p of this.bowlPieces) p.node.destroy();
-      this.mixCircle = this.add
-        .circle(this.bowlX, this.bowlY, 96 + colors.length * 8, colors[0])
-        .setDepth(2);
-      this.streaks = [];
+      if (useImg) {
+        this.mixNode = this.add.image(this.bowlX, this.bowlY, 'mix_10').setDepth(2);
+      } else {
+        this.mixNode = this.add.circle(this.bowlX, this.bowlY, 96 + colors.length * 8, colors[0]).setDepth(2);
+      }
       // 섞기 시작 후에는 안내 펄스를 멈추고 서서히 감춘다
       this.tweens.killTweensOf(this.hintText);
       this.tweens.add({ targets: this.hintText, alpha: 0, duration: 400 });
     }
 
-    if (!this.mixCircle) return;
-    const t = [0.33, 0.66, 0.85, 1][stage - 1];
-    this.mixCircle.setFillStyle(lerpColor(colors[0], mixed, t));
-
-    // 원색 얼룩: 단계가 오를수록 작아지고 옅어지다가 100%에서 사라진다
-    for (const s of this.streaks) s.destroy();
-    this.streaks = [];
-    if (stage < 4) {
-      const streakR = [20, 13, 8][stage - 1];
-      const streakA = [0.75, 0.5, 0.3][stage - 1];
-      for (let i = 1; i < colors.length; i++) {
-        for (let k = 0; k < 2; k++) {
-          const a = Math.random() * Math.PI * 2;
-          const r = Math.random() * 55;
-          this.streaks.push(
-            this.add
-              .circle(this.bowlX + Math.cos(a) * r, this.bowlY + Math.sin(a) * r, streakR, colors[i], streakA)
-              .setDepth(3)
-          );
-        }
-      }
+    if (!this.mixNode) return;
+    if (useImg) {
+      this.mixNode.setTexture(['mix_10', 'mix_40', 'mix_70', 'mix_100'][stage - 1]);
+      const w = 250 + stage * 8; // 섞일수록 살짝 커진다
+      this.mixNode.setDisplaySize(w, (this.mixNode.height * w) / this.mixNode.width);
+    } else {
+      const t = [0.33, 0.66, 0.85, 1][stage - 1];
+      this.mixNode.setFillStyle(lerpColor(colors[0], mixed, t));
     }
 
     // 단계 전환 꿀렁 피드백
     this.tweens.add({
-      targets: this.mixCircle,
-      scale: 1.07,
+      targets: this.mixNode,
+      scaleX: '*=1.07',
+      scaleY: '*=1.07',
       duration: 110,
       yoyo: true,
       ease: 'Sine.easeInOut',
@@ -400,17 +396,18 @@ export default class Stage1 extends Phaser.Scene {
 
     // 꿀렁꿀렁 → 매끈한 공으로 (뭉치기)
     this.tweens.add({
-      targets: this.mixCircle,
-      scaleX: 1.16,
-      scaleY: 0.84,
+      targets: this.mixNode,
+      scaleX: '*=1.16',
+      scaleY: '*=0.84',
       duration: 170,
       yoyo: true,
       repeat: 1,
       ease: 'Sine.easeInOut',
       onComplete: () => {
         this.tweens.add({
-          targets: this.mixCircle,
-          scale: 0.88,
+          targets: this.mixNode,
+          scaleX: '*=0.85',
+          scaleY: '*=0.85',
           duration: 300,
           ease: 'Back.easeIn',
           onComplete: () => {
@@ -429,10 +426,17 @@ export default class Stage1 extends Phaser.Scene {
     return Phaser.Math.Distance.Between(x, y, this.bowlX, this.bowlY) <= BOWL_R * RUB_AREA_RATIO;
   }
 
-  // 하이라이트가 달린 블롭(컨테이너) 생성
-  makeBlob(x, y, r, color) {
-    const body = this.add.circle(0, 0, r, color);
-    const shine = this.add.circle(-r * 0.3, -r * 0.35, r * 0.3, 0xffffff, 0.28);
+  // 뜯긴 조각 생성 (실에셋 스프라이트 / 없으면 하이라이트 달린 블롭)
+  // 컨테이너로 감싸 스케일 기준을 1로 유지한다 (스트레치·스냅 트윈용)
+  makePiece(x, y, clay) {
+    let body;
+    if (this.textures.exists(`clay_${clay.name}`)) {
+      body = this.add.image(0, 0, `clay_${clay.name}`);
+      body.setDisplaySize(PIECE_R * 2.2, (body.height * (PIECE_R * 2.2)) / body.width);
+      return this.add.container(x, y, [body]);
+    }
+    body = this.add.circle(0, 0, PIECE_R, clay.color);
+    const shine = this.add.circle(-PIECE_R * 0.3, -PIECE_R * 0.35, PIECE_R * 0.3, 0xffffff, 0.28);
     return this.add.container(x, y, [body, shine]);
   }
 

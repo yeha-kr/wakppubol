@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { FONT, makeButton, fadeIn, fadeToScene } from '../systems/ui.js';
+import { FONT, makeButton, fadeIn, fadeToScene, addBackground, lightenColor } from '../systems/ui.js';
 
 // 결과 씬 (P5) — "완성!" + 소요 시간 + 코팅 레이어 수 + [다시 만들기]/[개발자 정보]
 const CLAY_FALLBACK = 0xd96c5f;
@@ -11,6 +11,7 @@ export default class Result extends Phaser.Scene {
 
   create() {
     fadeIn(this);
+    addBackground(this);
     const { width, height } = this.scale;
 
     const reg = this.registry.get('clayColors');
@@ -22,20 +23,32 @@ export default class Result extends Phaser.Scene {
     const layerText = typeof layers === 'number' ? `${layers}겹` : '—';
     console.log(`[Result] 소요 시간 ${timeText}, 코팅 ${layerText}`);
 
+    // 배경 위 가독성용 배너
+    const banner = this.add.graphics().setDepth(1);
+    banner.fillStyle(0xffffff, 0.6);
+    banner.fillRoundedRect(width / 2 - 250, 190, 500, 120, 30);
+    banner.fillRoundedRect(width / 2 - 250, 722, 500, 130, 30);
+
     this.add
       .text(width / 2, 250, '완성!', { fontFamily: FONT, fontSize: '96px', fontStyle: 'bold', color: '#6D5147' })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(2);
 
     // 부수고 나온 속 점토 공 — 내가 고른 색이 그대로 보인다
-    const ball = this.add.circle(width / 2, height * 0.44, 118, clayColor).setScale(0.5);
-    this.tweens.add({ targets: ball, scale: 1, duration: 450, ease: 'Back.easeOut' });
+    const ballNode = this.textures.exists('ball_core')
+      ? this.add.image(0, 0, 'ball_core').setDisplaySize(240, 240).setTint(lightenColor(clayColor, 0.45))
+      : this.add.circle(0, 0, 118, clayColor);
+    const wrap = this.add.container(width / 2, height * 0.44, [ballNode]).setScale(0.5).setDepth(2);
+    this.tweens.add({ targets: wrap, scale: 1, duration: 450, ease: 'Back.easeOut' });
 
     this.add
-      .text(width / 2, 760, `걸린 시간  ${timeText}`, { fontFamily: FONT, fontSize: '36px', color: '#A98D80' })
-      .setOrigin(0.5);
+      .text(width / 2, 760, `걸린 시간  ${timeText}`, { fontFamily: FONT, fontSize: '36px', fontStyle: 'bold', color: '#6D5147' })
+      .setOrigin(0.5)
+      .setDepth(2);
     this.add
-      .text(width / 2, 816, `왁스 코팅  ${layerText}`, { fontFamily: FONT, fontSize: '36px', color: '#A98D80' })
-      .setOrigin(0.5);
+      .text(width / 2, 816, `왁스 코팅  ${layerText}`, { fontFamily: FONT, fontSize: '36px', fontStyle: 'bold', color: '#6D5147' })
+      .setOrigin(0.5)
+      .setDepth(2);
 
     makeButton(this, width / 2, height * 0.74, '다시 만들기', () => {
       // registry를 깨끗이 비우고 새 판 시작 (완료 기준: 상태 초기화)
