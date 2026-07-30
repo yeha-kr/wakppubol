@@ -11,6 +11,12 @@ export default class Preload extends Phaser.Scene {
     super('Preload');
   }
 
+  preload() {
+    // 개발자 정보 사진 (P6) — 캔버스 텍스처로만 쓴다 (DOM <img> 금지, CLAUDE.md 7장).
+    // 파일이 없어도 게임은 계속 진행 (Credits 씬이 자리표시로 대체)
+    this.load.image('dev_photo', 'assets/dev/photo.png');
+  }
+
   async create() {
     fadeIn(this);
     addSceneLabel(this, 'Preload');
