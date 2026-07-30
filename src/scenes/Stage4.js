@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { FONT } from '../systems/ui.js';
+import { FONT, addStageHeader, fadeIn, fadeToScene } from '../systems/ui.js';
 import { playSfx } from '../systems/audio.js';
 import { vibrate, VIB_SMALL, VIB_BIG } from '../systems/haptics.js';
 
@@ -29,6 +29,7 @@ export default class Stage4 extends Phaser.Scene {
   }
 
   create() {
+    fadeIn(this);
     const { width, height } = this.scale;
     this.cx = width / 2;
     this.cy = height * 0.45;
@@ -43,9 +44,9 @@ export default class Stage4 extends Phaser.Scene {
     this.tapTimes = []; // 연타 판정용 최근 탭 시각
     this.startedAt = this.time.now;
 
-    // 속 점토 공 — 완파 시 노출되는 "다른 색 원" (registry는 P2에서 채워진다)
+    // 속 점토 공 — Stage1에서 만든 혼합 색이 노출된다 (registry 연동, P5)
     const regClay = this.registry.get('clayColors');
-    const clayColor = typeof regClay === 'number' ? regClay : CLAY_FALLBACK;
+    const clayColor = regClay && typeof regClay.mixed === 'number' ? regClay.mixed : CLAY_FALLBACK;
     this.clayBall = this.add.circle(this.cx, this.cy, this.R * 0.92, clayColor).setDepth(0);
 
     // 셸: 12개 부채꼴 구역. 각 조각은 자기 무게중심을 원점으로 그려서
@@ -75,18 +76,9 @@ export default class Stage4 extends Phaser.Scene {
     this.gaugeGfx = this.add.graphics().setDepth(4);
 
     // HUD
-    this.add
-      .text(width / 2, 56, 'Stage4 · 왁뿌볼 부수기', {
-        fontFamily: FONT,
-        fontSize: '34px',
-        fontStyle: 'bold',
-        color: '#6D5147',
-      })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(5);
+    addStageHeader(this, 4, 4, '왁뿌볼 부수기');
     this.counterText = this.add
-      .text(width / 2, 106, '', { fontFamily: FONT, fontSize: '30px', color: '#A98D80' })
+      .text(width / 2, 122, '', { fontFamily: FONT, fontSize: '30px', color: '#A98D80' })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(5);
@@ -308,7 +300,7 @@ export default class Stage4 extends Phaser.Scene {
     vibrate(VIB_BIG);
     this.cameras.main.shake(200, 0.008);
 
-    this.time.delayedCall(FINALE_DELAY_MS, () => this.scene.start('Result'));
+    this.time.delayedCall(FINALE_DELAY_MS, () => fadeToScene(this, 'Result'));
   }
 
   updateCounter() {

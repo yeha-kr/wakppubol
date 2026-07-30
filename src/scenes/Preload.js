@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { addSceneLabel, FONT } from '../systems/ui.js';
+import { addSceneLabel, FONT, fadeIn, fadeToScene } from '../systems/ui.js';
 import { loadSfx } from '../systems/audio.js';
 
 // 프리로드 씬
@@ -12,6 +12,7 @@ export default class Preload extends Phaser.Scene {
   }
 
   async create() {
+    fadeIn(this);
     addSceneLabel(this, 'Preload');
 
     const { width, height } = this.scale;
@@ -58,6 +59,6 @@ export default class Preload extends Phaser.Scene {
       console.log('[오디오] 언락 불필요. state =', ctx ? ctx.state : '(WebAudio 아님)');
     }
 
-    this.scene.start('Title');
+    fadeToScene(this, 'Title');
   }
 }

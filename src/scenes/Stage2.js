@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { FONT } from '../systems/ui.js';
+import { FONT, addStageHeader, fadeIn, fadeToScene } from '../systems/ui.js';
 import { playSfx } from '../systems/audio.js';
 
 // Stage 2 — 왁스에 담갔다 빼기 (P3, docs/PLAN.md 6장)
@@ -32,6 +32,7 @@ export default class Stage2 extends Phaser.Scene {
   }
 
   create() {
+    fadeIn(this);
     const { width } = this.scale;
     this.layers = 0;
     this.completing = false;
@@ -83,17 +84,9 @@ export default class Stage2 extends Phaser.Scene {
       .setAlpha(0);
 
     // ── HUD ──
-    this.add
-      .text(width / 2, 56, 'Stage2 · 왁스 코팅', {
-        fontFamily: FONT,
-        fontSize: '34px',
-        fontStyle: 'bold',
-        color: '#6D5147',
-      })
-      .setOrigin(0.5)
-      .setDepth(8);
+    addStageHeader(this, 2, 4, '왁스 코팅');
     this.counterText = this.add
-      .text(width / 2, 106, '', { fontFamily: FONT, fontSize: '30px', color: '#A98D80' })
+      .text(width / 2, 122, '', { fontFamily: FONT, fontSize: '30px', color: '#A98D80' })
       .setOrigin(0.5)
       .setDepth(8);
     this.updateCounter();
@@ -322,7 +315,7 @@ export default class Stage2 extends Phaser.Scene {
       repeat: 1,
       ease: 'Sine.easeInOut',
     });
-    this.time.delayedCall(1150, () => this.scene.start('Stage3'));
+    this.time.delayedCall(900, () => fadeToScene(this, 'Stage3'));
   }
 
   // 반투명 흰 왁스 방울 (공 아래쪽에서 떨어짐)

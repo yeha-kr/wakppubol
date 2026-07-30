@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { FONT } from '../systems/ui.js';
+import { FONT, addStageHeader, fadeIn, fadeToScene } from '../systems/ui.js';
 import { playSfx, startLoop, stopLoop } from '../systems/audio.js';
 
 // Stage 1 — 점토 떼서 섞어 뭉치기 (P2, docs/PLAN.md 6장)
@@ -35,6 +35,7 @@ export default class Stage1 extends Phaser.Scene {
   }
 
   create() {
+    fadeIn(this);
     const { width, height } = this.scale;
     this.bowlX = width / 2;
     this.bowlY = height * 0.457; // 585
@@ -105,15 +106,7 @@ export default class Stage1 extends Phaser.Scene {
       .setAlpha(0);
 
     // ── HUD ──
-    this.add
-      .text(width / 2, 56, 'Stage1 · 점토 반죽', {
-        fontFamily: FONT,
-        fontSize: '34px',
-        fontStyle: 'bold',
-        color: '#6D5147',
-      })
-      .setOrigin(0.5)
-      .setDepth(8);
+    addStageHeader(this, 1, 4, '점토 반죽');
 
     this.input.on('pointerdown', this.onDown, this);
     this.input.on('pointermove', this.onMove, this);
@@ -413,9 +406,9 @@ export default class Stage1 extends Phaser.Scene {
           duration: 300,
           ease: 'Back.easeIn',
           onComplete: () => {
-            // 선택 색 정보를 registry로 전달 (CLAUDE.md 4장 — 이후 씬은 P5에서 연결)
+            // 선택 색 정보를 registry로 전달 (CLAUDE.md 4장)
             this.registry.set('clayColors', { picked: colors, mixed });
-            this.time.delayedCall(280, () => this.scene.start('Stage2'));
+            this.time.delayedCall(200, () => fadeToScene(this, 'Stage2'));
           },
         });
       },
