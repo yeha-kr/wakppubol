@@ -28,7 +28,5 @@ const config = {
 
 const game = new Phaser.Game(config);
 
-// 개발 중 콘솔 디버깅용 핸들 (프로덕션 빌드에서는 제외됨)
-if (import.meta.env.DEV) {
-  window.__game = game;
-}
+// 콘솔 디버깅·자동 검증용 핸들 (민감정보 아님 — 개발자도구로 어차피 접근 가능한 객체)
+window.__game = game;
