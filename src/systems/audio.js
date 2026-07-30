@@ -83,8 +83,31 @@ export async function loadSfx(scene) {
     };
     const oneShotNames = Object.values(MANIFEST).flat();
     const loopFiles = Object.values(LOOP_MANIFEST);
-    const results = await Promise.all([...oneShotNames, ...loopFiles].map(probeOne));
-    const found = results.filter((r) => r.ok);
+    const allNames = [...oneShotNames, ...loopFiles];
+
+    // 0) manifest.json이 있으면 그 목록을 신뢰하고 개별 프로브를 생략한다.
+    //    정적 호스팅(GitHub Pages)에서는 없는 파일마다 콘솔에 404가 쌓이므로,
+    //    프로브는 manifest가 없을 때의 폴백으로만 쓴다.
+    //    (mp3를 추가할 때: manifest.json의 files에 파일명 추가, 또는 manifest 삭제)
+    let listed = null;
+    try {
+      const r = await fetch(`${SFX_DIR}manifest.json`);
+      const ct = (r.headers.get('content-type') || '').toLowerCase();
+      if (r.ok && !ct.includes('text/html')) {
+        const j = await r.json();
+        if (Array.isArray(j.files)) listed = new Set(j.files.map((f) => String(f).replace(/\.mp3$/i, '')));
+      }
+    } catch (e) {
+      listed = null; // manifest 없음/손상 → 프로브 모드
+    }
+
+    let found;
+    if (listed) {
+      found = allNames.filter((n) => listed.has(n)).map((n) => ({ name: n, url: `${SFX_DIR}${n}.mp3` }));
+    } else {
+      const results = await Promise.all(allNames.map(probeOne));
+      found = results.filter((r) => r.ok);
+    }
 
     // 2) 있는 파일만 Phaser 로더로 로드 (로드 완료 시점에 디코딩까지 끝난다)
     if (found.length > 0) {
